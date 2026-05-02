@@ -1,6 +1,13 @@
 # AGENTS_SPEC — playlist-to-brain
 
-You are running inside an Obsidian vault's `Inbox/` folder. Your job is to convert every video in a YouTube playlist into one atomic Zettelkasten note in the current directory.
+You are running inside an Obsidian vault's `Inbox/` folder. Your job is to convert every video in a YouTube playlist — or a single YouTube video — into one atomic Zettelkasten note in the current directory.
+
+The input may be:
+
+- a playlist URL like `https://www.youtube.com/playlist?list=PL...`
+- a single-video URL like `https://www.youtube.com/watch?v=<videoId>`, `https://youtu.be/<videoId>`, or `https://www.youtube.com/shorts/<videoId>`
+
+`playlist-to-brain list <url>` works for both. For single-video URLs the queue is one row; the rest of the workflow is identical.
 
 ## Tools
 
@@ -15,11 +22,12 @@ Do not invent flags. Do not call any other CLI.
 
 ## Progress file
 
-Keep one restartable progress file per playlist. This is the only non-note file you may write.
+Keep one restartable progress file per run. This is the only non-note file you may write.
 
 - Directory: `.playlist-to-brain/` in the current `Inbox/` folder.
 - Filename for playlist URLs: `playlist-<playlistId>.md`, where `<playlistId>` is the URL's `list` parameter.
-- Filename fallback: if no `list` parameter exists, use `playlist-<safe-id>.md`, where `<safe-id>` is the returned single video ID or a sanitized URL identifier.
+- Filename for single-video URLs: `playlist-<videoId>.md`, where `<videoId>` is the `videoId` field of the single entry returned by `playlist-to-brain list <url>`. Set `playlistId: <videoId>` and `playlistUrl: <original-url>` in the file header. The shape and workflow are otherwise identical to a one-row playlist.
+- Filename fallback for anything else: `playlist-<safe-id>.md`, where `<safe-id>` is a sanitized URL identifier.
 - Row status values: `pending`, `in-progress`, `done`, `skipped`, `failed`.
 - File status values: `in-progress`, `complete`, `failed`.
 - Update the file after every video state change, not just at the end.
@@ -110,6 +118,21 @@ Run autonomously — no confirmation prompts.
 
 - Strip `?si=...` and any other share-tracking params.
 - Shorts use `https://www.youtube.com/shorts/<id>`. Regular videos use `https://www.youtube.com/watch?v=<id>`. The `meta` and `list` outputs include `isShort` and `url` already in the right form.
+
+## Long videos
+
+Some videos are long enough that the full transcript may not fit comfortably alongside your reasoning in your context window. The CLI cannot switch your model for you, so this is your responsibility.
+
+1. After `meta <id>`, look at `duration` (seconds). After `transcript <id>`, measure the character count of stdout.
+2. Use **your own judgment** about whether the transcript is "long" relative to your context window. There are no hard thresholds in this spec — what overflows a small model is fine on a 1M-context model.
+3. If you judge the video to be long, **before writing the note, print one line to the user** stating the duration in minutes and the transcript size in characters, and recommend they restart in a higher-context-window model (e.g. Claude with 1M context) for best fidelity. Then continue with the single-pass note attempt.
+4. If your single-pass LLM call fails because the input is too large or you run out of context, **fall back to chunked summarization** — do not abort the video:
+   - Split the cleaned transcript into roughly-equal chunks (your judgment, typically 3–6).
+   - Summarize each chunk into a short paragraph plus 2–4 takeaways.
+   - Synthesize the final `## Summary`, `## Key Takeaways`, and `## Open Questions` sections from the per-chunk summaries.
+   - The full cleaned transcript still goes into `## Transcript` unmodified.
+   - Record `chunked` in the `note` column of the progress file row (e.g. `<filename> (chunked)`) so the run is traceable.
+5. If even chunked summarization fails for context reasons, mark the row `failed` with a short error mentioning context overflow and suggesting a higher-context model. This is retriable on a larger model.
 
 ## Markdown formatting
 

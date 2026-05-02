@@ -9,6 +9,7 @@ export interface MetaOutput {
   uploadDate: string | null;
   isShort: boolean;
   url: string;
+  duration: number | null;
 }
 
 export async function runMeta(videoId: string): Promise<void> {
@@ -24,6 +25,7 @@ export async function runMeta(videoId: string): Promise<void> {
     uploadDate: reformatUploadDate(m.upload_date) ?? null,
     isShort,
     url: m.webpage_url ?? `https://www.youtube.com/watch?v=${m.id}`,
+    duration: typeof m.duration === "number" ? Math.round(m.duration) : null,
   };
   process.stdout.write(JSON.stringify(out, null, 2) + "\n");
 }

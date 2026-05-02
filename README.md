@@ -1,12 +1,12 @@
 # Playlist to Brain
 
-Turn a YouTube playlist into atomic Zettelkasten notes inside an Obsidian vault. A coding agent orchestrates; this CLI is a primitive toolbox that fetches playlist data, video metadata, and transcripts.
+Turn a YouTube playlist — or a single YouTube video — into atomic Zettelkasten notes inside an Obsidian vault. A coding agent orchestrates; this CLI is a primitive toolbox that fetches playlist data, video metadata, and transcripts.
 
 The CLI itself needs no LLM provider API key, no Google OAuth, and no browser cookies. Your chosen coding agent may require its own login or API key. Local Whisper transcription kicks in automatically when YouTube has no captions.
 
 ## Why use this
 
-If you already use a "watch later"-style YouTube playlist as a queue of things you mean to learn from, the videos pile up faster than you watch them — and even when you do watch, the ideas don't stick. This tool turns that queue into searchable, linkable notes in your second brain.
+If you already use a "watch later"-style YouTube playlist as a queue of things you mean to learn from, the videos pile up faster than you watch them — and even when you do watch, the ideas don't stick. This tool turns that queue into searchable, linkable notes in your second brain. The same flow works for one-off videos you want to capture without adding to a playlist first.
 
 You get, per video:
 
@@ -110,23 +110,29 @@ claude
 > process this playlist: https://www.youtube.com/playlist?list=PL...
 ```
 
-Or with OpenAI Codex:
+Or for a single video:
 
 ```bash
-cd ~/path/to/your-vault/Inbox
-codex
-> process this playlist: https://www.youtube.com/playlist?list=PL...
+> process this video: https://www.youtube.com/watch?v=KyfUysrNaco
 ```
+
+`process this: <url>` also works — the agent disambiguates from the URL itself. Same flow with OpenAI Codex (`codex` instead of `claude`).
 
 The agent will:
 
 1. Run `playlist-to-brain instructions` — fetches the spec it must follow.
-2. Run `playlist-to-brain list <url>` — fetches the queue.
-3. Create or update `.playlist-to-brain/playlist-<playlistId>.md` — one progress file per playlist.
+2. Run `playlist-to-brain list <url>` — fetches the queue (one row for a single video, many for a playlist).
+3. Create or update `.playlist-to-brain/playlist-<id>.md` — one progress file per run, named after the playlist's `list` parameter or, for single videos, the video ID.
 4. Skip any video already in the inbox (matched by `videoId` in frontmatter), recording it in the progress file.
 5. For each remaining video: mark it `in-progress`, run `meta` + `transcript`, write `<slug>.md`, verify it, then mark it `done`.
 
-The playlist must be **public or unlisted** — there is no auth.
+The playlist or video must be **public or unlisted** — there is no auth.
+
+## Long videos
+
+Some videos are long enough that the full transcript may not fit in the agent's context window alongside its reasoning. The CLI surfaces `duration` (seconds) in `meta` output and the agent measures the transcript size after fetching, so it can preflight.
+
+When the agent judges a video to be long for its current model, it will print one line warning you and recommend you restart in a higher-context-window model (e.g. Claude with 1M context) for best fidelity, then attempt the note as usual. If the model can't fit the full transcript, the agent automatically falls back to chunked summarization — splitting the transcript into pieces, summarizing each, then synthesizing the final note. The chunked notes are tagged in the progress file so you can spot them and re-run on a larger model later if you want a single-pass version.
 
 ## Restarting after token limits
 
@@ -155,8 +161,8 @@ For both, open the playlist page in your browser, open DevTools → Console, and
 |---|---|
 | `instructions` | Prints `AGENTS_SPEC.md` for the agent to read. |
 | `doctor` | Checks all dependencies and the whisper model. |
-| `list <url>` | Playlist → JSON. No auth — playlist must be public or unlisted. |
-| `meta <id>` | One video → JSON metadata for the author rule. |
+| `list <url>` | Playlist or single video → JSON array. No auth — must be public or unlisted. |
+| `meta <id>` | One video → JSON metadata for the author rule. Includes `duration` (seconds) for the long-video rule. |
 | `transcript <id>` | Auto-captions → cleaned text. Falls back to whisper-cpp. |
 
 ## Configuration

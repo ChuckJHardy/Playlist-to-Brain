@@ -2,14 +2,21 @@
 
 This folder is the target for `playlist-to-brain`. Every `*.md` in here is a Zettelkasten note converted from a YouTube video.
 
-## When the user says "process this playlist: <url>"
+## When the user says "process this <kind>: <url>"
+
+The user may phrase the request as "process this playlist: <url>", "process this video: <url>", or "process this: <url>". The URL itself disambiguates:
+
+- `?list=PL...` → playlist
+- `watch?v=<id>`, `youtu.be/<id>`, or `/shorts/<id>` → single video
+
+Either way:
 
 1. Run `playlist-to-brain instructions` and follow the spec it prints verbatim.
-2. Then run `playlist-to-brain list <url>` to get the queue.
-3. Create or update the per-playlist progress file under `.playlist-to-brain/`.
+2. Then run `playlist-to-brain list <url>` to get the queue. (For a single video the queue is one row.)
+3. Create or update the progress file under `.playlist-to-brain/` per the spec's progress-file rules.
 4. Proceed autonomously - no confirmation prompts between videos.
 
-The spec from step 1 is authoritative. It defines the note template, the author rule, the dedupe rule, the progress-file rule, and what not to do. Do not improvise around it.
+The spec from step 1 is authoritative. It defines the note template, the author rule, the dedupe rule, the progress-file rule, the long-video rule, and what not to do. Do not improvise around it.
 
 ## Tools you may use
 
