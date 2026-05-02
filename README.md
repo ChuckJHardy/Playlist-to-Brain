@@ -82,7 +82,7 @@ Decide which folder in your vault should receive the notes — typically `Inbox/
 ```bash
 # from the cloned repo, with VAULT pointing at your vault
 cp templates/vault-Inbox-CLAUDE.md "$VAULT/Inbox/CLAUDE.md"
-cp tags.md "$VAULT/Inbox/tags.md"   # optional but recommended
+cp templates/tags.md "$VAULT/Inbox/tags.md"   # optional but recommended
 ```
 
 What each file does:
