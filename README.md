@@ -165,6 +165,10 @@ For both, open the playlist page in your browser, open DevTools → Console, and
 | `WHISPER_MODEL_NAME` | `ggml-large-v3-turbo.bin` | Which model to use. Swap to `ggml-large-v3.bin` etc. |
 | `PLAYLIST_TO_BRAIN_DEBUG` | unset | Set to `1` for spawn-level logging on stderr. |
 
+## Other useful tips
+
+- **Clear all liked videos** — If you want to reset your YouTube activity, you can remove all your liked videos at [myactivity.google.com](https://myactivity.google.com/page?page=youtube_likes&continue=https%3A%2F%2Fmyactivity.google.com%2Fproduct%2Fyoutube%2Finteractions%3Fhl%3Den&hl=en). Useful for starting fresh or managing your YouTube profile.
+
 ## Out of scope
 
 - Editing existing notes

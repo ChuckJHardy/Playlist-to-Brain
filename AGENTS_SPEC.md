@@ -24,6 +24,10 @@ Keep one restartable progress file per playlist. This is the only non-note file 
 - File status values: `in-progress`, `complete`, `failed`.
 - Update the file after every video state change, not just at the end.
 
+`skipped` covers two cases: a note for that `videoId` already exists, **or** the video cannot be processed for a reason that retrying will not fix (e.g. an LLM provider rejects the transcript with a content-filtering / policy error such as `400 invalid_request_error: Output blocked by content filtering policy`, the video is private/removed, or the transcript is empty after both auto-captions and whisper). Record the reason in the `error` column and continue to the next video — do not let a single skip block the queue.
+
+`failed` is for transient or unclear errors that may succeed on retry (network blips, timeouts, unexpected exceptions). Skips do not flip the file status to `failed`; only `failed` rows do.
+
 Progress file template:
 
 ```markdown
@@ -68,8 +72,18 @@ Escape `|` characters in titles and errors as `/` so the table stays readable.
    5. Write `<slug>.md`. On filename collision append ` 2`, ` 3`, etc.
    6. Read the file back and verify the YAML parses (no trailing colons, quoted strings where needed).
    7. Mark the row `done`, record the note filename, clear any error, and update the file.
-8. If a video fails, mark it `failed` with a short error, update the progress file, then continue to the next video if possible.
-9. When every row is `done` or `skipped`, set the progress file status to `complete`. If any row remains `failed`, set the progress file status to `failed`. Do not summarize at the end unless something failed.
+8. If a video fails, decide which bucket it falls into and update the progress file, then continue to the next video:
+   - **Non-retriable** (content-policy rejection from the LLM, private/removed video, empty transcript after both fallbacks): mark `skipped` with a short error.
+   - **Retriable** (network, timeout, unknown): mark `failed` with a short error.
+   Never abort the run because of a single video — keep going until the queue is empty.
+9. When every row is `done` or `skipped`, set the progress file status to `complete`. If any row remains `failed`, set the progress file status to `failed`.
+10. At the end of the run, always print one line with the final counts:
+
+    ```
+    playlist-to-brain: done=<n> skipped=<n> failed=<n> pending=<n>
+    ```
+
+    Count every row in the progress file. `pending` should normally be `0`; a non-zero value means the run was interrupted before the queue was drained.
 
 Run autonomously — no confirmation prompts.
 
