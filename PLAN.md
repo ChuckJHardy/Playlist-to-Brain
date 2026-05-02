@@ -4,13 +4,13 @@
 
 ## Context
 
-You want to turn YouTube playlists (public or unlisted, including Shorts) into atomic Zettelkasten notes inside your Obsidian vault, with no LLM provider API key required by this CLI and nothing landing in the vault except `.md` files. The friction today is manual: watching, transcribing in your head, summarizing, filing. The intended outcome is a tool you invoke from a coding-agent session inside `Inbox/` that walks the playlist, transcribes each video locally, asks the active agent to write a structured note, and saves it. The CLI makes no LLM API call; your chosen agent provides that step. Transcription is local via Whisper, and there is no Google OAuth setup since playlist deletion was dropped.
+You want to turn YouTube playlists (public or unlisted, including Shorts) into atomic Zettelkasten notes inside your Obsidian vault, with no LLM provider API key required by this CLI. The friction today is manual: watching, transcribing in your head, summarizing, filing. The intended outcome is a tool you invoke from a coding-agent session inside `Inbox/` that walks the playlist, transcribes each video locally, asks the active agent to write a structured note, saves it, and updates a per-playlist progress file so a later session can resume. The CLI makes no LLM API call; your chosen agent provides that step. Transcription is local via Whisper, and there is no Google OAuth setup since playlist deletion was dropped.
 
 ## Architecture
 
 **A coding agent orchestrates; the CLI is a primitive toolbox.** A globally-installed `playlist-to-brain` TypeScript CLI exposes small read-only subcommands. The active agent, such as Anthropic Claude Code or OpenAI Codex, calls those subcommands, reads the output, and writes notes using its own file tools. The CLI itself needs no LLM provider API key; your chosen agent may require its own login or API key.
 
-**Nothing is written into the vault except `.md` files.** No state file, no `.processed.json`, no config. Idempotency is achieved by scanning `Inbox/*.md` frontmatter for an existing `videoId` field — that's how we know what's already done.
+**The only non-note state is a per-playlist progress file.** Notes are still regular Markdown files in `Inbox/`. Restart state lives at `.playlist-to-brain/playlist-<playlistId>.md`, one file per playlist. Idempotency is still grounded in scanning `Inbox/*.md` frontmatter for an existing `videoId` field, then reconciling that with the progress file.
 
 **No Google API, no OAuth, no browser cookies.** Playlists are kept public or unlisted by convention, so `yt-dlp` reads them with no auth at all — works on any machine with just `yt-dlp` installed. Fully-private playlists are out of scope. Auto-delete from the playlist was explicitly dropped — you'll prune the playlist manually on YouTube after a session.
 
@@ -31,14 +31,17 @@ Each is read-only or writes only to stdout. None of them touch the vault.
 1. Call `playlist-to-brain instructions` and follow the spec.
 2. Call `playlist-to-brain list <url>`.
 3. Read every `.md` in CWD; collect existing `videoId` values from frontmatter. For each, warn `"<videoId> already in <file> — skipping"` and remove from the queue.
-4. Read `Inbox/tags.md` if it exists; treat its tags as the preferred vocabulary. If absent, print one line `"no tags.md found, choosing tags freely"`.
-5. For each remaining video:
+4. Create or read `.playlist-to-brain/playlist-<playlistId>.md`, initialize missing rows, and reconcile statuses against existing notes.
+5. Read `Inbox/tags.md` if it exists; treat its tags as the preferred vocabulary. If absent, print one line `"no tags.md found, choosing tags freely"`.
+6. For each remaining video:
+   - Mark the row `in-progress` and update the progress file.
    - Call `meta <videoId>`. Apply the author rule (below).
    - Call `transcript <videoId>`.
    - Compose the note (template below). Pick tags biased toward `tags.md` where reasonable.
    - Write `Inbox/<slug>.md`. On filename collision, append ` 2`, ` 3`, etc.
    - Read the file back, verify YAML parses.
-   - Move on. No state file is written.
+   - Mark the row `done` with the note filename and update the progress file.
+   - Move on.
 
 ## Author rule
 
@@ -95,8 +98,8 @@ Notes:
 - Body sections: Summary / Key Takeaways / Open Questions.
 - Confirmation prompts: none, run autonomously.
 - Existing notes with same `videoId`: warn and skip.
-- Run stats / quota tracking: removed — keep the CLI quiet.
-- Install: global `npm i -g`. Vault contains only `.md` files.
+- Run stats / quota tracking: removed — keep the CLI quiet. The progress file tracks only restart state.
+- Install: global `npm i -g`. Vault content remains Markdown notes plus hidden Markdown progress files.
 
 ## Dependencies the user installs once
 
@@ -195,7 +198,7 @@ End-to-end smoke test using your example playlist `PLmfKycvQVEiyjMuxbyWmeRVIBlUI
    - `videoId` matches the URL.
    - `author` either present and wrapped `[[...]]`, or absent (never partial).
    - Body has all three sections; transcript appendix is clean prose with no `[00:00]` markers.
-6. Re-run on the same playlist: every video should report `"already in <file> — skipping"`. Zero new files created.
+6. Re-run on the same playlist: every video should report `"already in <file> — skipping"`. Zero new note files created, and the existing `.playlist-to-brain/playlist-<playlistId>.md` should remain reconciled.
 7. Edge cases to manually verify:
    - A Short — `source` URL uses `/shorts/` form.
    - A video with no captions — `whisper-cpp` runs and produces clean text (slow but quality).
@@ -210,6 +213,6 @@ End-to-end smoke test using your example playlist `PLmfKycvQVEiyjMuxbyWmeRVIBlUI
 - No editing of existing notes.
 - No deletion from YouTube playlists (manual cleanup).
 - No support for fully-private playlists (must be public or unlisted).
-- No state files in the vault (vault stays pure markdown).
+- No extra state files beyond `.playlist-to-brain/playlist-<playlistId>.md`.
 - No run-stats reporting / quota tracking.
 - No confirmation prompts during the run.

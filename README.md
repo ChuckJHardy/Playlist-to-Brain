@@ -120,10 +120,21 @@ The agent will:
 
 1. Run `playlist-to-brain instructions` — fetches the spec it must follow.
 2. Run `playlist-to-brain list <url>` — fetches the queue.
-3. Skip any video already in the inbox (matched by `videoId` in frontmatter).
-4. For each remaining video: run `meta` + `transcript`, then write `<slug>.md`.
+3. Create or update `.playlist-to-brain/playlist-<playlistId>.md` — one progress file per playlist.
+4. Skip any video already in the inbox (matched by `videoId` in frontmatter), recording it in the progress file.
+5. For each remaining video: mark it `in-progress`, run `meta` + `transcript`, write `<slug>.md`, verify it, then mark it `done`.
 
 The playlist must be **public or unlisted** — there is no auth.
+
+## Restarting after token limits
+
+If the coding agent runs out of LLM tokens or the session stops halfway through, start a new agent session in the same `Inbox/` folder and use the same prompt:
+
+```bash
+> process this playlist: https://www.youtube.com/playlist?list=PL...
+```
+
+The agent will read `.playlist-to-brain/playlist-<playlistId>.md`, reconcile it with existing notes by `videoId`, and resume from the first unfinished video. Each row in that file records the video status, note filename, last update date, and any short error.
 
 ## When you're done with the playlist
 
