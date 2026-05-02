@@ -33,11 +33,13 @@ published: 2025-12-10
 ---
 
 ## Summary
+
 You're not supposed to feel amazing every day. Tough days are not a deviation from
 a meaningful life — they're a constituent part of one. Survival on hard days is
 "one more rep, one more day."
 
 ## Key Takeaways
+
 - The expectation of feeling great daily is the source of the suffering, not the
   bad days themselves.
 - Where you are right now, including the difficulty, is where you're meant to be.
@@ -45,13 +47,13 @@ a meaningful life — they're a constituent part of one. Survival on hard days i
   not the goal.
 
 ## Open Questions
+
 - Where am I treating an off day as a failure of the system instead of a feature
   of it?
 - What's my "one more rep" version of getting through today?
 
----
-
 ## Transcript
+
 This is a pretty important one. Everything changed for me when I realized ...
 ```
 

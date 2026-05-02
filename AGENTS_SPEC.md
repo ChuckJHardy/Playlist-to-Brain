@@ -111,6 +111,20 @@ Run autonomously — no confirmation prompts.
 - Strip `?si=...` and any other share-tracking params.
 - Shorts use `https://www.youtube.com/shorts/<id>`. Regular videos use `https://www.youtube.com/watch?v=<id>`. The `meta` and `list` outputs include `isShort` and `url` already in the right form.
 
+## Markdown formatting
+
+Every note must follow these rules — they are not stylistic preferences, they are required:
+
+- `---` is reserved for YAML frontmatter delimiters at the top of the file. Do not use it as a horizontal rule or section separator anywhere else in the note.
+- Every heading (`#`, `##`, `###`, ...) is followed by a blank line before the next content.
+- No consecutive blank lines — collapse to a single blank line between blocks.
+- The file ends with exactly one trailing newline.
+- Bullet lists use `-` (not `*` or `+`) with a single space after the marker.
+- Emphasis uses `_italic_`; strong uses `**bold**`.
+- Fenced code blocks use triple backticks with a language tag when known.
+
+When you read the note back to verify YAML, also verify the body still satisfies these rules.
+
 ## Note template
 
 ```markdown
@@ -124,23 +138,25 @@ published: 2024-08-12
 ---
 
 ## Summary
+
 One paragraph capturing the atomic idea.
 
 ## Key Takeaways
+
 - ...
 - ...
 
 ## Open Questions
-- ...
-- ...
 
----
+- ...
+- ...
 
 ## Transcript
+
 Cleaned, punctuated paragraphs. No timestamps.
 ```
 
-`published` is `YYYY-MM-DD` (already formatted by `meta`).
+`published` is `YYYY-MM-DD` (already formatted by `meta`). Note: there is **no** `---` separator before `## Transcript` — section headings alone delimit sections.
 
 ## Skip / dedupe
 
