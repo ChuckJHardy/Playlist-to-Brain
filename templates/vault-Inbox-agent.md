@@ -1,4 +1,4 @@
-# Inbox — playlist-to-brain
+# Inbox - playlist-to-brain
 
 This folder is the target for `playlist-to-brain`. Every `*.md` in here is a Zettelkasten note converted from a YouTube video.
 
@@ -6,7 +6,7 @@ This folder is the target for `playlist-to-brain`. Every `*.md` in here is a Zet
 
 1. Run `playlist-to-brain instructions` and follow the spec it prints verbatim.
 2. Then run `playlist-to-brain list <url>` to get the queue.
-3. Proceed autonomously — no confirmation prompts between videos.
+3. Proceed autonomously - no confirmation prompts between videos.
 
 The spec from step 1 is authoritative. It defines the note template, the author rule, the dedupe rule, and what not to do. Do not improvise around it.
 
@@ -16,7 +16,7 @@ The spec from step 1 is authoritative. It defines the note template, the author 
 - `playlist-to-brain list <playlist-url>`
 - `playlist-to-brain meta <videoId>`
 - `playlist-to-brain transcript <videoId>`
-- `Read` and `Write` for `.md` files in this directory.
+- File read/write tools for `.md` files in this directory.
 
 Do not call any other CLI. Do not invent flags. Do not edit existing notes.
 

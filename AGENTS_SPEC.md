@@ -9,7 +9,7 @@ You only have these primitives (all read-only / stdout-only — none touch the v
 - `playlist-to-brain list <playlist-url>` → JSON array of `{videoId, title, channelTitle, channelDescription, url, isShort, uploadDate}`.
 - `playlist-to-brain meta <videoId>` → JSON `{title, channelTitle, channelDescription, uploadDate, isShort}`.
 - `playlist-to-brain transcript <videoId>` → cleaned, punctuated paragraphs to stdout (no timestamps). Auto-captions first; falls back to local whisper.
-- Your own `Read` and `Write` tools for the vault.
+- Your own file read/write tools for the vault.
 
 Do not invent flags. Do not call any other CLI.
 

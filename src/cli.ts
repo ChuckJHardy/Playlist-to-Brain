@@ -11,12 +11,12 @@ const program = new Command();
 
 program
   .name("playlist-to-brain")
-  .description("Primitive toolbox for turning YouTube playlists into Obsidian notes. Claude orchestrates.")
+  .description("Primitive toolbox for turning YouTube playlists into Obsidian notes. A coding agent orchestrates.")
   .version("0.1.0");
 
 program
   .command("instructions")
-  .description("Print the AGENTS_SPEC.md that Claude should follow this session")
+  .description("Print the AGENTS_SPEC.md that the coding agent should follow this session")
   .action(async () => {
     try { await runInstructions(); } catch (e) { fail((e as Error).message); }
   });

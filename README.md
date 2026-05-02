@@ -1,8 +1,8 @@
 # Playlist to Brain
 
-Turn a YouTube playlist into atomic Zettelkasten notes inside an Obsidian vault. Claude orchestrates; this CLI is a primitive toolbox that fetches playlist data, video metadata, and transcripts.
+Turn a YouTube playlist into atomic Zettelkasten notes inside an Obsidian vault. A coding agent orchestrates; this CLI is a primitive toolbox that fetches playlist data, video metadata, and transcripts.
 
-No Anthropic API key, no Google OAuth, no browser cookies. Local Whisper transcription kicks in automatically when YouTube has no captions.
+The CLI itself needs no LLM provider API key, no Google OAuth, and no browser cookies. Your chosen coding agent may require its own login or API key. Local Whisper transcription kicks in automatically when YouTube has no captions.
 
 ## Why use this
 
@@ -55,7 +55,7 @@ a meaningful life — they're a constituent part of one. Survival on hard days i
 This is a pretty important one. Everything changed for me when I realized ...
 ```
 
-The shape — frontmatter, summary, takeaways, open questions, transcript — is fixed by [`AGENTS_SPEC.md`](./AGENTS_SPEC.md). The wording inside each section is Claude's.
+The shape — frontmatter, summary, takeaways, open questions, transcript — is fixed by [`AGENTS_SPEC.md`](./AGENTS_SPEC.md). The wording inside each section is written by your coding agent.
 
 ## Install
 
@@ -77,18 +77,28 @@ playlist-to-brain doctor
 
 ## Set up your Obsidian vault
 
-Decide which folder in your vault should receive the notes — typically `Inbox/`. Then copy two files into that folder:
+Decide which folder in your vault should receive the notes — typically `Inbox/`. Then copy the agent instruction template into that folder using the filename your agent expects:
 
 ```bash
 # from the cloned repo, with VAULT pointing at your vault
-cp templates/vault-Inbox-CLAUDE.md "$VAULT/Inbox/CLAUDE.md"
-cp templates/tags.md "$VAULT/Inbox/tags.md"   # optional but recommended
+# choose one or both, depending on which agent you use
+
+# Anthropic Claude Code
+cp templates/vault-Inbox-agent.md "$VAULT/Inbox/CLAUDE.md"
+
+# OpenAI Codex
+cp templates/vault-Inbox-agent.md "$VAULT/Inbox/AGENTS.md"
+
+# optional but recommended
+cp templates/tags.md "$VAULT/Inbox/tags.md"
 ```
+
+Start the agent that matches the instruction file you created. If you use both agents in the same vault folder, copy the template to both filenames. The template content is identical; only the filename changes.
 
 What each file does:
 
-- **`CLAUDE.md`** — tells Claude, when run from this folder, that the user phrase "process this playlist: <url>" means "run `playlist-to-brain` and follow `AGENTS_SPEC.md`." Without it, Claude has no idea this CLI exists.
-- **`tags.md`** — a flat list of preferred tag names. Claude biases toward this vocabulary instead of inventing fresh tags every video, which keeps your tag index clean. Edit freely; you can also delete it and let Claude pick tags from scratch. The included `tags.md` is a starting point, not a prescription.
+- **`CLAUDE.md` / `AGENTS.md`** — tells the coding agent, when run from this folder, that the user phrase "process this playlist: <url>" means "run `playlist-to-brain` and follow `AGENTS_SPEC.md`." Claude Code auto-loads `CLAUDE.md`; OpenAI Codex auto-loads `AGENTS.md`.
+- **`tags.md`** — a flat list of preferred tag names. The agent biases toward this vocabulary instead of inventing fresh tags every video, which keeps your tag index clean. Edit freely; you can also delete it and let the agent pick tags from scratch. The included `tags.md` is a starting point, not a prescription.
 
 ## Use
 
@@ -98,7 +108,15 @@ claude
 > process this playlist: https://www.youtube.com/playlist?list=PL...
 ```
 
-Claude will:
+Or with OpenAI Codex:
+
+```bash
+cd ~/path/to/your-vault/Inbox
+codex
+> process this playlist: https://www.youtube.com/playlist?list=PL...
+```
+
+The agent will:
 
 1. Run `playlist-to-brain instructions` — fetches the spec it must follow.
 2. Run `playlist-to-brain list <url>` — fetches the queue.
@@ -109,7 +127,7 @@ The playlist must be **public or unlisted** — there is no auth.
 
 ## When you're done with the playlist
 
-Once Claude has finished, the cleanest move is to **delete the entire YouTube playlist** — the notes already live in your vault, so the playlist has served its purpose.
+Once the agent has finished, the cleanest move is to **delete the entire YouTube playlist** — the notes already live in your vault, so the playlist has served its purpose.
 
 That doesn't work for every case, though:
 
@@ -122,7 +140,7 @@ For both, open the playlist page in your browser, open DevTools → Console, and
 
 | Command | What it does |
 |---|---|
-| `instructions` | Prints `AGENTS_SPEC.md` for Claude to read. |
+| `instructions` | Prints `AGENTS_SPEC.md` for the agent to read. |
 | `doctor` | Checks all dependencies and the whisper model. |
 | `list <url>` | Playlist → JSON. No auth — playlist must be public or unlisted. |
 | `meta <id>` | One video → JSON metadata for the author rule. |

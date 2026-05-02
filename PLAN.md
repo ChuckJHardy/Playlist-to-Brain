@@ -4,11 +4,11 @@
 
 ## Context
 
-You want to turn YouTube playlists (public, private, or unlisted, including Shorts) into atomic Zettelkasten notes inside your Obsidian vault, with no extra Anthropic API key and nothing landing in the vault except `.md` files. The friction today is manual: watching, transcribing in your head, summarizing, filing. The intended outcome is a tool you invoke from a Claude Code session inside `Inbox/` that walks the playlist, transcribes each video locally, asks Claude to write a structured note, and saves it — fully offline for the LLM step (Claude is the LLM, no API call), fully offline for transcription (local Whisper), and with no Google OAuth setup since playlist deletion was dropped.
+You want to turn YouTube playlists (public or unlisted, including Shorts) into atomic Zettelkasten notes inside your Obsidian vault, with no LLM provider API key required by this CLI and nothing landing in the vault except `.md` files. The friction today is manual: watching, transcribing in your head, summarizing, filing. The intended outcome is a tool you invoke from a coding-agent session inside `Inbox/` that walks the playlist, transcribes each video locally, asks the active agent to write a structured note, and saves it. The CLI makes no LLM API call; your chosen agent provides that step. Transcription is local via Whisper, and there is no Google OAuth setup since playlist deletion was dropped.
 
 ## Architecture
 
-**Claude orchestrates; the CLI is a primitive toolbox.** A globally-installed `playlist-to-brain` TypeScript CLI exposes small read-only subcommands. Claude (running in your terminal session) calls those subcommands, reads the output, and writes notes using its own Write tool. No Anthropic API key is involved because Claude *is* the LLM.
+**A coding agent orchestrates; the CLI is a primitive toolbox.** A globally-installed `playlist-to-brain` TypeScript CLI exposes small read-only subcommands. The active agent, such as Anthropic Claude Code or OpenAI Codex, calls those subcommands, reads the output, and writes notes using its own file tools. The CLI itself needs no LLM provider API key; your chosen agent may require its own login or API key.
 
 **Nothing is written into the vault except `.md` files.** No state file, no `.processed.json`, no config. Idempotency is achieved by scanning `Inbox/*.md` frontmatter for an existing `videoId` field — that's how we know what's already done.
 
@@ -20,13 +20,13 @@ Each is read-only or writes only to stdout. None of them touch the vault.
 
 | Command | Purpose |
 |---|---|
-| `playlist-to-brain instructions` | Print the system prompt Claude should follow this session (note shape, tag rules, author rule, skip rules). Claude reads this first. |
+| `playlist-to-brain instructions` | Print the system prompt the coding agent should follow this session (note shape, tag rules, author rule, skip rules). The agent reads this first. |
 | `playlist-to-brain doctor` | Verify `yt-dlp`, `whisper-cpp`, `ffmpeg`, and the `ggml-large-v3.bin` model are installed; print exact install commands if not. |
 | `playlist-to-brain list <playlist-url>` | Run `yt-dlp -J --flat-playlist`, output JSON: `[{videoId, title, channelTitle, channelDescription, url, isShort, uploadDate}]`. No auth — assumes the playlist is public or unlisted. |
 | `playlist-to-brain transcript <videoId>` | Try YouTube auto-captions first via `yt-dlp --write-auto-sub --skip-download`; on miss, download audio and run `whisper-cpp` with `large-v3-turbo`. Output cleaned, punctuated paragraphs to stdout — no timestamps. |
-| `playlist-to-brain meta <videoId>` | Output channel title, channel description, upload date, full title — used by Claude to apply the author rule. |
+| `playlist-to-brain meta <videoId>` | Output channel title, channel description, upload date, full title — used by the agent to apply the author rule. |
 
-## Per-video workflow (executed by Claude)
+## Per-video workflow (executed by the coding agent)
 
 1. Call `playlist-to-brain instructions` and follow the spec.
 2. Call `playlist-to-brain list <url>`.
@@ -42,7 +42,7 @@ Each is read-only or writes only to stdout. None of them touch the vault.
 
 ## Author rule
 
-- Default `author` to the channel title wrapped as `[[Channel Title]]` if the channel reads as a person (heuristic on channel title + description, judged by Claude).
+- Default `author` to the channel title wrapped as `[[Channel Title]]` if the channel reads as a person (heuristic on channel title + description, judged by the agent).
 - If the channel is an organization (e.g., "TED"), parse the video title for a speaker name (e.g., `"Chase Hughes: How to..."` → `Chase Hughes`). Use that, wrapped as `[[Chase Hughes]]`.
 - If neither yields a person, **omit the `author` field entirely** — do not skip the video.
 
@@ -83,7 +83,7 @@ Notes:
 
 ## Decisions locked in (from our Q&A)
 
-- Architecture: Option A (Claude orchestrates, CLI is primitive toolbox).
+- Architecture: Option A (coding agent orchestrates, CLI is primitive toolbox).
 - Auto-delete from playlist: dropped. No OAuth, no Google Cloud project.
 - Playlist visibility: public or unlisted only. No `--cookies-from-browser`, no browser dependency. Fully-private playlists out of scope.
 - Transcription: local-only. Auto-captions first via `yt-dlp`, fallback to `whisper-cpp` with `ggml-large-v3-turbo.bin` (newest model in the repo as of late 2024; quality near-identical to `large-v3` for English with ~6x speedup).
@@ -170,23 +170,26 @@ playlist-to-brain/
       run.ts                   # child_process wrapper with stderr capture
       log.ts                   # quiet by default
   AGENTS_SPEC.md               # the source of truth that `instructions` prints
+  templates/
+    vault-Inbox-agent.md       # copy to CLAUDE.md or AGENTS.md inside the vault Inbox
+    tags.md                    # optional preferred tag vocabulary
 ```
 
 ## Files to create
 
 All new (greenfield project). Paths above. The two most important files:
 
-- `AGENTS_SPEC.md` — encodes the note shape, author rule, tag rule, skip-existing rule, and workflow. Claude reads this every session via `playlist-to-brain instructions`. Get this file right and the rest is mechanical.
-- `PLAN.md` — this plan, copied verbatim into the repo root so it lives with the code (rather than being buried in `~/.claude/plans/`). On the very first commit, copy `/Users/chuck.hardy@akeneo.com/.claude/plans/1-in-inbox-2-shimmying-cocoa.md` → `PLAN.md`.
+- `AGENTS_SPEC.md` — encodes the note shape, author rule, tag rule, skip-existing rule, and workflow. The active coding agent reads this every session via `playlist-to-brain instructions`. Get this file right and the rest is mechanical.
+- `PLAN.md` — this plan lives in the repo root as architecture context.
 
 ## Verification
 
 End-to-end smoke test using your example playlist `PLmfKycvQVEiyjMuxbyWmeRVIBlUIDfdep`:
 
 1. `playlist-to-brain doctor` → all green.
-2. `cd ~/.../Inbox && claude` → start a session.
+2. `cd ~/.../Inbox && claude` or `cd ~/.../Inbox && codex` → start a session.
 3. Prompt: `process this playlist: https://www.youtube.com/playlist?list=PLmfKycvQVEiyjMuxbyWmeRVIBlUIDfdep`.
-4. Expect: Claude calls `instructions`, then `list`, then loops `meta` + `transcript` + Write per video.
+4. Expect: the agent calls `instructions`, then `list`, then loops `meta` + `transcript` + file write per video.
 5. Inspect 2–3 generated `Inbox/*.md` files:
    - Frontmatter parses (try `yq '.tags' file.md`).
    - `videoId` matches the URL.

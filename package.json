@@ -1,7 +1,7 @@
 {
   "name": "playlist-to-brain",
   "version": "0.1.0",
-  "description": "Turn YouTube playlists into Zettelkasten notes in Obsidian — Claude orchestrates, this CLI is a primitive toolbox.",
+  "description": "Turn YouTube playlists into Zettelkasten notes in Obsidian — a coding agent orchestrates, this CLI is a primitive toolbox.",
   "type": "module",
   "bin": {
     "playlist-to-brain": "dist/cli.js"
