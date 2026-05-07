@@ -128,6 +128,25 @@ The agent will:
 
 The playlist or video must be **public or unlisted** — there is no auth.
 
+## Linking new notes to the rest of your vault
+
+After a run, you can ask the agent to add a `## Related` section to each just-created note. The agent picks 3–5 wikilinks to other notes in your vault with a one-sentence reason for each.
+
+```bash
+cd ~/path/to/your-vault/Inbox
+claude
+> find related notes from last run
+```
+
+Under the hood:
+
+- `playlist-to-brain index` builds a small local semantic index at `.playlist-to-brain/index.json`. Embeddings come from `Xenova/all-MiniLM-L6-v2` running locally via `@xenova/transformers` — no API key. The model (~22MB) downloads to `~/.cache/playlist-to-brain/transformers/` on first use.
+- `playlist-to-brain related <note>` returns the top-15 candidate notes as JSON, with their summaries and takeaways pre-populated. The agent reads that directly — it doesn't re-open candidate files — so token cost stays roughly flat regardless of vault size.
+- The relate workflow is the only command flow allowed to edit existing notes. It inserts a single `## Related` section between `## Open Questions` and `## Transcript`. The full spec is at `RELATE_SPEC.md` (also printable via `playlist-to-brain relate-instructions`).
+- Re-running is idempotent. A sidecar `.playlist-to-brain/relate-<id>.md` tracks per-note status; notes that already have a `## Related` section are skipped.
+
+For a 500-note vault adding `## Related` to ~10 new notes per run, expect roughly $0.05/run on Sonnet, ~$0.25/run on Opus — about 100× cheaper than feeding the whole vault to the LLM each time.
+
 ## Long videos
 
 Some videos are long enough that the full transcript may not fit in the agent's context window alongside its reasoning. The CLI surfaces `duration` (seconds) in `meta` output and the agent measures the transcript size after fetching, so it can preflight.
@@ -160,10 +179,13 @@ For both, open the playlist page in your browser, open DevTools → Console, and
 | Command | What it does |
 |---|---|
 | `instructions` | Prints `AGENTS_SPEC.md` for the agent to read. |
-| `doctor` | Checks all dependencies and the whisper model. |
+| `doctor` | Checks all dependencies and the whisper/embedding models. |
 | `list <url>` | Playlist or single video → JSON array. No auth — must be public or unlisted. |
 | `meta <id>` | One video → JSON metadata for the author rule. Includes `duration` (seconds) for the long-video rule. |
 | `transcript <id>` | Auto-captions → cleaned text. Falls back to whisper-cpp. |
+| `index` | Build/update the local semantic index of vault notes. |
+| `related <note-path>` | Top-K related notes for a given note as JSON, with summaries/takeaways inlined. |
+| `relate-instructions` | Prints `RELATE_SPEC.md` — the workflow the agent follows to add `## Related` sections. |
 
 ## Configuration
 

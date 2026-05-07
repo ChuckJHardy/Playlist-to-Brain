@@ -187,8 +187,8 @@ Cleaned, punctuated paragraphs. No timestamps.
 
 ## What not to do
 
-- Do not write JSON, logs, or extra state files into the vault. The only allowed non-note state is `.playlist-to-brain/playlist-<id>.md`.
+- Do not write JSON, logs, or extra state files into the vault. The only allowed non-note state is `.playlist-to-brain/playlist-<id>.md` (and `.playlist-to-brain/relate-<id>.md` / `.playlist-to-brain/index.json` produced by the relate workflow).
 - Do not include timestamps in the transcript.
 - Do not invent an `author` if no person can be identified — omit instead.
 - Do not ask for confirmation between videos.
-- Do not edit existing notes.
+- Do not edit existing notes — **except** the `relate` workflow defined in `RELATE_SPEC.md`, which may insert exactly one `## Related` section between `## Open Questions` and `## Transcript`.
