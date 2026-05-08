@@ -20,7 +20,7 @@ The result: a playlist of 30 unwatched videos becomes 30 notes you can actually 
 
 ## Example output
 
-A real note generated from a short video — saved as `one-more-rep-one-more-day.md` in the Inbox folder:
+A real note generated from a short video — saved as `One More Rep One More Day.md` in the Inbox folder:
 
 ```markdown
 ---
@@ -124,7 +124,7 @@ The agent will:
 2. Run `playlist-to-brain list <url>` — fetches the queue (one row for a single video, many for a playlist).
 3. Create or update `.playlist-to-brain/playlist-<id>.md` — one progress file per run, named after the playlist's `list` parameter or, for single videos, the video ID.
 4. Skip any video already in the inbox (matched by `videoId` in frontmatter), recording it in the progress file.
-5. For each remaining video: mark it `in-progress`, run `meta` + `transcript`, write `<slug>.md`, verify it, then mark it `done`.
+5. For each remaining video: mark it `in-progress`, run `meta` + `transcript`, write `<Filename>.md` (Title Case, see [`AGENTS_SPEC.md`](./AGENTS_SPEC.md) "Title and filename"), verify it, then mark it `done`.
 
 The playlist or video must be **public or unlisted** — there is no auth.
 
