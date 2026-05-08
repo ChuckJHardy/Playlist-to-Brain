@@ -20,7 +20,7 @@ The result: a playlist of 30 unwatched videos becomes 30 notes you can actually 
 
 ## Example output
 
-A real note generated from a short video — saved as `one-more-rep-one-more-day.md` in the Inbox folder:
+A real note generated from a short video — saved as `One More Rep One More Day.md` in the Inbox folder:
 
 ```markdown
 ---
@@ -124,9 +124,88 @@ The agent will:
 2. Run `playlist-to-brain list <url>` — fetches the queue (one row for a single video, many for a playlist).
 3. Create or update `.playlist-to-brain/playlist-<id>.md` — one progress file per run, named after the playlist's `list` parameter or, for single videos, the video ID.
 4. Skip any video already in the inbox (matched by `videoId` in frontmatter), recording it in the progress file.
-5. For each remaining video: mark it `in-progress`, run `meta` + `transcript`, write `<slug>.md`, verify it, then mark it `done`.
+5. For each remaining video: mark it `in-progress`, run `meta` + `transcript`, write `<Filename>.md` (Title Case, see [`AGENTS_SPEC.md`](./AGENTS_SPEC.md) "Title and filename"), verify it, then mark it `done`.
 
 The playlist or video must be **public or unlisted** — there is no auth.
+
+## Linking new notes to the rest of your vault
+
+After a run, you can ask the agent to add a `## Related` section to each just-created note. The agent picks 3–5 wikilinks to other notes in your vault with a one-sentence reason for each.
+
+```bash
+cd ~/path/to/your-vault/Inbox
+claude
+> find related notes from last run
+```
+
+Under the hood:
+
+- `playlist-to-brain index` builds a small local semantic index at `.playlist-to-brain/index.json`. Embeddings come from `Xenova/all-MiniLM-L6-v2` running locally via `@xenova/transformers` — no API key. The model (~22MB) downloads to `~/.cache/playlist-to-brain/transformers/` on first use.
+- `playlist-to-brain related <note>` returns the top-15 candidate notes as JSON, with their summaries and takeaways pre-populated. The agent reads that directly — it doesn't re-open candidate files — so token cost stays roughly flat regardless of vault size.
+- The relate workflow is the only command flow allowed to edit existing notes. It inserts a single `## Related` section between `## Open Questions` and `## Transcript`. The full spec is at `RELATE_SPEC.md` (also printable via `playlist-to-brain relate-instructions`).
+- Re-running is idempotent. A sidecar `.playlist-to-brain/relate-<id>.md` tracks per-note status; notes that already have a `## Related` section are skipped.
+
+For a 500-note vault adding `## Related` to ~10 new notes per run, expect roughly $0.05/run on Sonnet, ~$0.25/run on Opus — about 100× cheaper than feeding the whole vault to the LLM each time.
+
+**Troubleshooting.** If the agent improvises searches (`grep` / `ls` / `find` over the vault), only does one note, or asks for confirmation between notes, your `CLAUDE.md` (or `AGENTS.md`) is from before this feature was added. Re-copy `templates/vault-Inbox-agent.md` over the file in whatever directory you launch `claude` (or `codex`) from — that's where the trigger phrase lives. Updating `npm install -g .` does not update files inside your vault.
+
+## Visualising the embedding cloud
+
+Once you have an index, you can see your vault as a 2D/3D map of semantic clusters using **TensorFlow's Embedding Projector** — a free, browser-based tool. All projection (UMAP / t-SNE / PCA) and nearest-neighbour exploration runs entirely in your browser; your vectors and metadata are never uploaded to a server.
+
+What you need:
+
+1. A built index — run `playlist-to-brain index` from your vault root if you haven't yet.
+2. A modern browser (Chrome, Firefox, Safari).
+3. No account, no signup, no install.
+
+Workflow:
+
+```bash
+cd ~/path/to/your-vault
+playlist-to-brain export-embeddings --out ~/Desktop
+# writes vectors.tsv and metadata.tsv to ~/Desktop
+```
+
+`vectors.tsv` is one note per row, tab-separated floats (384 dims for the default `Xenova/all-MiniLM-L6-v2` model). `metadata.tsv` is one note per row with columns `path`, `title`, `tags`, `author`.
+
+Then:
+
+1. Open <https://projector.tensorflow.org/>.
+2. Click **Load** in the left panel (top-left button labelled "Load data from your computer").
+3. Upload `vectors.tsv` for "Step 1: Load a TSV file of vectors".
+4. Upload `metadata.tsv` for "Step 2: Load a TSV file of metadata".
+5. Choose a projection (UMAP works well at this scale) and explore. Click any point to see its 100 nearest neighbours by cosine similarity. Use the search box (right panel) to find a specific note by title or path.
+
+Re-run `playlist-to-brain export-embeddings` whenever the index changes — the projector reads the files at upload time, so refreshing means re-uploading.
+
+## Migrating legacy kebab-case filenames to Title Case
+
+The current spec writes filenames in Title Case (`One More Rep One More Day.md`) so Obsidian's sidebar and graph render them cleanly. If you have a backlog of older notes in kebab-case (`one-more-rep-one-more-day.md`), `scripts/obsidian-retitle.sh` renames them in place — using Obsidian's own CLI, so wikilinks and backlinks throughout your vault are repaired automatically by Obsidian's internal API.
+
+What you need:
+
+- Obsidian **v1.12.4 or newer**.
+- The Obsidian CLI registered: **Settings → General → Command line interface → Register CLI**.
+- Obsidian must be **running** while the script executes (it talks to the live process).
+- **Settings → Files and Links → "Automatically update internal links"** turned **ON**, so wikilink rewrites are applied.
+
+Usage (from anywhere inside your vault — the vault root is auto-detected):
+
+```bash
+# dry run on every *.md in the current directory
+./scripts/obsidian-retitle.sh
+
+# actually rename
+./scripts/obsidian-retitle.sh --apply
+
+# specific files only
+./scripts/obsidian-retitle.sh --apply path/to/notes/*.md
+```
+
+The dry run prints `DRY: <old> → <new>` for every file it would change. Files without hyphens (already title-cased or single-word) are skipped. The capitalization rules match `AGENTS_SPEC.md` "Title and filename" — same small-words list, same "first word always capitalized" rule.
+
+This is a one-off migration tool, not part of the daily workflow. Run it once over your existing vault and forget about it.
 
 ## Long videos
 
@@ -160,10 +239,14 @@ For both, open the playlist page in your browser, open DevTools → Console, and
 | Command | What it does |
 |---|---|
 | `instructions` | Prints `AGENTS_SPEC.md` for the agent to read. |
-| `doctor` | Checks all dependencies and the whisper model. |
+| `doctor` | Checks all dependencies and the whisper/embedding models. |
 | `list <url>` | Playlist or single video → JSON array. No auth — must be public or unlisted. |
 | `meta <id>` | One video → JSON metadata for the author rule. Includes `duration` (seconds) for the long-video rule. |
 | `transcript <id>` | Auto-captions → cleaned text. Falls back to whisper-cpp. |
+| `index` | Build/update the local semantic index of vault notes. |
+| `related <note-path>` | Top-K related notes for a given note as JSON, with summaries/takeaways inlined. |
+| `relate-instructions` | Prints `RELATE_SPEC.md` — the workflow the agent follows to add `## Related` sections. |
+| `export-embeddings` | Exports `vectors.tsv` + `metadata.tsv` for TensorFlow Embedding Projector. |
 
 ## Configuration
 

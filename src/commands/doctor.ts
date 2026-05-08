@@ -1,6 +1,7 @@
 import { run } from "../util/run.js";
 import { whisperBinary, whisperModelPath } from "../transcript/whisper.js";
 import { existsSync } from "node:fs";
+import { embeddingCacheDir, embeddingModelDownloaded, EMBEDDING_MODEL } from "../embeddings/model.js";
 
 interface Check {
   name: string;
@@ -38,6 +39,17 @@ export async function runDoctor(): Promise<void> {
     name: `whisper model (${modelPath})`,
     ok: existsSync(modelPath),
     detail: existsSync(modelPath) ? "present" : "missing",
+  });
+
+  // Embedding model is downloaded lazily on first `index` run. Surface its
+  // status here for visibility — it is not fatal either way.
+  const embedDownloaded = embeddingModelDownloaded();
+  checks.push({
+    name: `embedding model (${EMBEDDING_MODEL})`,
+    ok: true,
+    detail: embedDownloaded
+      ? `present (${embeddingCacheDir()})`
+      : "not yet downloaded (will fetch on first 'index' run)",
   });
 
   let allOk = true;

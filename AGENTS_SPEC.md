@@ -77,7 +77,7 @@ Escape `|` characters in titles and errors as `/` so the table stays readable.
    2. `playlist-to-brain meta <videoId>` — apply the **author rule**.
    3. `playlist-to-brain transcript <videoId>` — capture stdout as the transcript body.
    4. Compose the note (template below).
-   5. Write `<slug>.md`. On filename collision append ` 2`, ` 3`, etc.
+   5. Write `<Filename>.md` per the **Title and filename** rule below. On collision append ` 2`, ` 3`, etc.
    6. Read the file back and verify the YAML parses (no trailing colons, quoted strings where needed).
    7. Mark the row `done`, record the note filename, clear any error, and update the file.
 8. If a video fails, decide which bucket it falls into and update the progress file, then continue to the next video:
@@ -108,11 +108,43 @@ Run autonomously — no confirmation prompts.
 - Pick 2–5 tags. Prefer existing entries from `tags.md` when reasonable.
 - If a video clearly needs a new tag, you may invent one — keep it lowercase, kebab-case, single concept.
 
-## Title / slug
+## Title and filename
 
-- Title style: whatever fits the video — concise and meaningful.
-- Slug: kebab-case from the title; trim YouTube clickbait fluff.
-- Filename collisions append ` 2`, ` 3`, etc.
+- **Title style:** concise and meaningful. Trim YouTube clickbait fluff (channel-prefixed brackets, all-caps SHOCK words, "you won't believe…", emoji, episode numbers if not load-bearing).
+- **Filename = title** with these capitalization rules, plus `.md`. Obsidian renders the filename as the note's visible title in the sidebar, graph, and link autocomplete — so this is what the human reads.
+
+### Capitalization
+
+- Capitalize the **first** and **last** word of the title regardless of the rules below.
+- Capitalize all other words **except** when they appear in the small-words list below.
+- Acronyms keep their original case (`AI`, `API`, `SaaS`, `PIM`, `PR`).
+- Hyphenated words: capitalize each segment unless the segment is in the small-words list (`Self-Efficacy`, `Cost-of-Living`).
+- The first word after a kept `:` / `—` / `–` is treated as a new clause and capitalized.
+
+### Small-words list (always lowercase when interior)
+
+- Articles: `a`, `an`, `the`
+- Coordinating conjunctions: `and`, `but`, `or`, `nor`, `for`, `so`, `yet`
+- Short prepositions: `as`, `at`, `by`, `for`, `from`, `in`, `into`, `of`, `on`, `onto`, `to`, `up`, `via`, `vs`, `with`
+
+### Filesystem-safe characters
+
+- Drop or replace these characters (invalid on at least one OS): `/`, `\`, `:`, `?`, `*`, `<`, `>`, `|`, `"`. Prefer dropping unless the meaning is lost.
+- When the title has the form `<Speaker>: <Subject>` (per the author rule), the speaker has already been pulled out as `author:` — the filename uses `<Subject>` only.
+- Apostrophes (`'`), commas (`,`), parentheses (`(`, `)`), ampersands (`&`), and hyphens (`-`) are fine as-is.
+- Collapse runs of whitespace to a single space. Trim leading/trailing whitespace and punctuation.
+
+### Filename collision
+
+If a file with the same name already exists in the directory, append ` 2`, ` 3`, etc., before the `.md`: `Atomic Habits 2.md`.
+
+### Examples
+
+- `One More Rep One More Day.md`
+- `How to Read People in 5 Seconds.md` (speaker prefix dropped per author rule)
+- `Relationships Are the Only Durable Competitive Advantage.md`
+- `Self-Efficacy and the Cost of Showing Up.md`
+- `AI Pricing — Hybrid Credits Iteration.md` (`—` kept; first word after it capitalized)
 
 ## Source URL
 
@@ -187,8 +219,8 @@ Cleaned, punctuated paragraphs. No timestamps.
 
 ## What not to do
 
-- Do not write JSON, logs, or extra state files into the vault. The only allowed non-note state is `.playlist-to-brain/playlist-<id>.md`.
+- Do not write JSON, logs, or extra state files into the vault. The only allowed non-note state is `.playlist-to-brain/playlist-<id>.md` (and `.playlist-to-brain/relate-<id>.md` / `.playlist-to-brain/index.json` produced by the relate workflow).
 - Do not include timestamps in the transcript.
 - Do not invent an `author` if no person can be identified — omit instead.
 - Do not ask for confirmation between videos.
-- Do not edit existing notes.
+- Do not edit existing notes — **except** the `relate` workflow defined in `RELATE_SPEC.md`, which may insert exactly one `## Related` section between `## Open Questions` and `## Transcript`.
