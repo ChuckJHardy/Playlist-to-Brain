@@ -147,6 +147,38 @@ Under the hood:
 
 For a 500-note vault adding `## Related` to ~10 new notes per run, expect roughly $0.05/run on Sonnet, ~$0.25/run on Opus — about 100× cheaper than feeding the whole vault to the LLM each time.
 
+**Troubleshooting.** If the agent improvises searches (`grep` / `ls` / `find` over the vault), only does one note, or asks for confirmation between notes, your `CLAUDE.md` (or `AGENTS.md`) is from before this feature was added. Re-copy `templates/vault-Inbox-agent.md` over the file in whatever directory you launch `claude` (or `codex`) from — that's where the trigger phrase lives. Updating `npm install -g .` does not update files inside your vault.
+
+## Visualising the embedding cloud
+
+Once you have an index, you can see your vault as a 2D/3D map of semantic clusters using **TensorFlow's Embedding Projector** — a free, browser-based tool. All projection (UMAP / t-SNE / PCA) and nearest-neighbour exploration runs entirely in your browser; your vectors and metadata are never uploaded to a server.
+
+What you need:
+
+1. A built index — run `playlist-to-brain index` from your vault root if you haven't yet.
+2. A modern browser (Chrome, Firefox, Safari).
+3. No account, no signup, no install.
+
+Workflow:
+
+```bash
+cd ~/path/to/your-vault
+playlist-to-brain export-embeddings --out ~/Desktop
+# writes vectors.tsv and metadata.tsv to ~/Desktop
+```
+
+`vectors.tsv` is one note per row, tab-separated floats (384 dims for the default `Xenova/all-MiniLM-L6-v2` model). `metadata.tsv` is one note per row with columns `path`, `title`, `tags`, `author`.
+
+Then:
+
+1. Open <https://projector.tensorflow.org/>.
+2. Click **Load** in the left panel (top-left button labelled "Load data from your computer").
+3. Upload `vectors.tsv` for "Step 1: Load a TSV file of vectors".
+4. Upload `metadata.tsv` for "Step 2: Load a TSV file of metadata".
+5. Choose a projection (UMAP works well at this scale) and explore. Click any point to see its 100 nearest neighbours by cosine similarity. Use the search box (right panel) to find a specific note by title or path.
+
+Re-run `playlist-to-brain export-embeddings` whenever the index changes — the projector reads the files at upload time, so refreshing means re-uploading.
+
 ## Long videos
 
 Some videos are long enough that the full transcript may not fit in the agent's context window alongside its reasoning. The CLI surfaces `duration` (seconds) in `meta` output and the agent measures the transcript size after fetching, so it can preflight.
@@ -186,6 +218,7 @@ For both, open the playlist page in your browser, open DevTools → Console, and
 | `index` | Build/update the local semantic index of vault notes. |
 | `related <note-path>` | Top-K related notes for a given note as JSON, with summaries/takeaways inlined. |
 | `relate-instructions` | Prints `RELATE_SPEC.md` — the workflow the agent follows to add `## Related` sections. |
+| `export-embeddings` | Exports `vectors.tsv` + `metadata.tsv` for TensorFlow Embedding Projector. |
 
 ## Configuration
 

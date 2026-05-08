@@ -8,6 +8,7 @@ import { runTranscript } from "./commands/transcript.js";
 import { runIndex } from "./commands/index_.js";
 import { runRelated } from "./commands/related.js";
 import { runRelateInstructions } from "./commands/relateInstructions.js";
+import { runExportEmbeddings } from "./commands/exportEmbeddings.js";
 import { fail } from "./util/log.js";
 
 const program = new Command();
@@ -81,6 +82,15 @@ program
   .description("Print RELATE_SPEC.md — the workflow the agent follows to add `## Related` sections")
   .action(async () => {
     try { await runRelateInstructions(); } catch (e) { fail((e as Error).message); }
+  });
+
+program
+  .command("export-embeddings")
+  .description("Export the index as vectors.tsv + metadata.tsv for TensorFlow Embedding Projector")
+  .option("--out <dir>", "output directory (defaults to CWD)")
+  .option("--root <dir>", "vault root (defaults to CWD)")
+  .action(async (opts: { out?: string; root?: string }) => {
+    try { await runExportEmbeddings(opts); } catch (e) { fail((e as Error).message); }
   });
 
 program.parseAsync().catch((e) => fail((e as Error).message));

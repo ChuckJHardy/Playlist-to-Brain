@@ -4,6 +4,14 @@ You are running inside an Obsidian vault's `Inbox/` folder. Your job is to walk 
 
 This is the **only** workflow allowed to edit existing notes. `AGENTS_SPEC.md`'s "do not edit existing notes" rule still applies everywhere else. Within this workflow you may insert exactly one `## Related` section between `## Open Questions` and `## Transcript`. You must not touch frontmatter, `## Summary`, `## Key Takeaways`, `## Open Questions`, `## Transcript`, or any other section.
 
+## Hard rules — apply to the whole run
+
+- **Loop every note.** Process every row collected in step 2 in one autonomous pass. Do not stop after one note. Do not pick "the most recent" and call it done.
+- **No improvising candidate discovery.** The only allowed tool for finding related notes is `playlist-to-brain related <note-path>`. Do not use `grep`, `ls`, `find`, `git`, your own `Read`/file scans, or any other vault search to discover candidates. The candidate JSON has every field you need (title, tags, author, summary, takeaways).
+- **No confirmation prompts.** Do not ask "Want me to add this?", "Want me to commit?", "Should I also backlink from the hub?", or any other yes/no — between notes, before edits, or at the end. Apply edits and continue.
+- **No commits.** Do not run `git add`, `git commit`, `git push`, or any other git command. The user commits manually after the run.
+- **No proposals.** Do not produce a "Suggested edits to the note" list and wait. Make the edit yourself, verify it, move to the next row.
+
 ## Tools
 
 - `playlist-to-brain relate-instructions` — prints this spec.
@@ -77,13 +85,15 @@ Escape `|` characters in any free-text column as `/` so the table stays readable
    - Keep `done`/`skipped` rows as-is (idempotent re-runs).
    - Retry `failed` rows after pending rows.
    - Set the file `status: in-progress` and `updated:` to today.
-4. **Process unfinished rows in order.** For each `pending`/`in-progress`/`failed` row:
+4. **Process unfinished rows in order — every single one, in one pass.** MUST iterate every `pending`/`in-progress`/`failed` row from step 2. A per-row failure marks that row `failed` and continues; it never aborts the loop. Stopping after one note is a bug.
+
+   For each row:
    1. Mark the row `in-progress` and update the sidecar.
    2. Read the note from the path in the row (relative to the Inbox folder).
    3. If the body matches `^## Related\b` (line-anchored), mark `skipped` reason `already-related`. Continue.
    4. If the note has no `## Summary` section AND no usable fallback paragraph, mark `skipped` reason `no-summary`. Continue.
-   5. Run `playlist-to-brain related <abs-path> --limit 15`. Parse JSON. If empty, mark `skipped` reason `empty-index`. Continue.
-   6. Pick 3–5 candidates by **content reasoning**, not score alone. Drop any whose summary is unrelated even if `score` is high. Aim for cosine ≥ 0.35 as a soft floor.
+   5. Run `playlist-to-brain related <abs-path> --limit 15`. Parse JSON. If empty, mark `skipped` reason `empty-index`. Continue. **MUST call this command. Do not substitute your own grep/ls/find/git/Read scan of the vault.** The candidate JSON is complete — no further file reads needed to compose the section.
+   6. Pick **3 to 5** candidates by **content reasoning**, not score alone. Drop any whose summary is unrelated even if `score` is high. Aim for cosine ≥ 0.35 as a soft floor. Hard cap is 5. If fewer than 3 truly fit, prefer fewer over filler — never pad to hit a number.
    7. Compose the block. Use this exact shape — it must satisfy the Markdown formatting rules in `AGENTS_SPEC.md`:
 
       ```markdown
@@ -99,6 +109,29 @@ Escape `|` characters in any free-text column as `/` so the table stays readable
       - The reason is wrapped in `_…_` (italic) and is one sentence ending with a period.
       - Blank line after the heading.
       - The reference uses the candidate's `title` field. If two candidates in the JSON share the same `title`, disambiguate with the path form `[[<path-without-extension>|<title>]]` for both.
+
+      Right vs. wrong:
+
+      ```markdown
+      Right:
+
+      - [[Some Note]] — _one-sentence reason ending with a period._
+
+      Wrong (do not produce these):
+
+      - [[Some Note]] — One-sentence reason without italic.
+        ↑ reason MUST be wrapped in _…_
+
+      - [[A]]
+      - [[B]]
+      - [[C]]
+      - [[D]]
+      - [[E]]
+      - [[F]]
+      - [[G]]
+      - [[H]]
+        ↑ max 5 bullets total per note — never 6, 7, or 8
+      ```
    8. **Insert** the block between `## Open Questions` and `## Transcript`:
       - Find the line index of `## Open Questions` and `## Transcript` (line-anchored, `^## Heading\s*$`).
       - **Both present:** insert the block immediately before `## Transcript`. There must be exactly one blank line above `## Related` and exactly one blank line between `## Related` and `## Transcript`.
@@ -129,3 +162,7 @@ Run autonomously — no confirmation prompts.
 - Do not call `playlist-to-brain index --force` unless the user explicitly asks; the auto-rebuild on stale is sufficient.
 - Do not write JSON, logs, or extra state files into the vault. The only allowed non-note state is `.playlist-to-brain/relate-<id>.md`.
 - Do not pick more than 5 related links per note. If fewer than 3 truly fit, prefer fewer over filler.
+- Do not ask for confirmation between notes or at the end. Apply edits and continue.
+- Do not propose edits and wait for approval — make the edit yourself, verify it, move to the next row.
+- Do not run `git add`, `git commit`, `git push`, or any other git command. The user commits manually.
+- Do not use `grep`, `ls`, `find`, or your own file scans to find related notes — `playlist-to-brain related` is the only allowed candidate source.
