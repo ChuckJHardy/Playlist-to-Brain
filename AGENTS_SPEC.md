@@ -125,7 +125,7 @@ Run autonomously — no confirmation prompts.
 
 - Articles: `a`, `an`, `the`
 - Coordinating conjunctions: `and`, `but`, `or`, `nor`, `for`, `so`, `yet`
-- Short prepositions: `as`, `at`, `by`, `for`, `from`, `in`, `into`, `of`, `on`, `to`, `up`, `via`, `vs`, `with`
+- Short prepositions: `as`, `at`, `by`, `for`, `from`, `in`, `into`, `of`, `on`, `onto`, `to`, `up`, `via`, `vs`, `with`
 
 ### Filesystem-safe characters
 

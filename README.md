@@ -179,6 +179,34 @@ Then:
 
 Re-run `playlist-to-brain export-embeddings` whenever the index changes — the projector reads the files at upload time, so refreshing means re-uploading.
 
+## Migrating legacy kebab-case filenames to Title Case
+
+The current spec writes filenames in Title Case (`One More Rep One More Day.md`) so Obsidian's sidebar and graph render them cleanly. If you have a backlog of older notes in kebab-case (`one-more-rep-one-more-day.md`), `scripts/obsidian-retitle.sh` renames them in place — using Obsidian's own CLI, so wikilinks and backlinks throughout your vault are repaired automatically by Obsidian's internal API.
+
+What you need:
+
+- Obsidian **v1.12.4 or newer**.
+- The Obsidian CLI registered: **Settings → General → Command line interface → Register CLI**.
+- Obsidian must be **running** while the script executes (it talks to the live process).
+- **Settings → Files and Links → "Automatically update internal links"** turned **ON**, so wikilink rewrites are applied.
+
+Usage (from anywhere inside your vault — the vault root is auto-detected):
+
+```bash
+# dry run on every *.md in the current directory
+./scripts/obsidian-retitle.sh
+
+# actually rename
+./scripts/obsidian-retitle.sh --apply
+
+# specific files only
+./scripts/obsidian-retitle.sh --apply path/to/notes/*.md
+```
+
+The dry run prints `DRY: <old> → <new>` for every file it would change. Files without hyphens (already title-cased or single-word) are skipped. The capitalization rules match `AGENTS_SPEC.md` "Title and filename" — same small-words list, same "first word always capitalized" rule.
+
+This is a one-off migration tool, not part of the daily workflow. Run it once over your existing vault and forget about it.
+
 ## Long videos
 
 Some videos are long enough that the full transcript may not fit in the agent's context window alongside its reasoning. The CLI surfaces `duration` (seconds) in `meta` output and the agent measures the transcript size after fetching, so it can preflight.
